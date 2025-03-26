@@ -27,11 +27,10 @@ let package = Package(
             targets: ["StableDiffusion"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/ml-explore/mlx-swift", .upToNextMinor(from: "0.21.2")),
-        .package(
-            url: "https://github.com/huggingface/swift-transformers", .upToNextMinor(from: "0.1.17")
-        ),
-        .package(
+        .package(url: "https://github.com/damienclr/mlx-swift.git", branch: "main"),
+         .package(
+             url: "https://github.com/damienclr/swift-transformers.git", branch: "main"),
+         .package(
             url: "https://github.com/apple/swift-async-algorithms", .upToNextMinor(from: "1.0.0")),
         .package(url: "https://github.com/1024jp/GzipSwift", "6.0.1" ... "6.0.1"),  // Only needed by MLXMNIST
     ],
