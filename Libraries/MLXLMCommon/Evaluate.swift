@@ -488,7 +488,7 @@ public func generate(
     tokenizer: Tokenizer,
     extraEOSTokens: Set<String>? = nil,
     // CHANGE: didGenerate is now async
-    didGenerate: ([Int]) async -> GenerateDisposition
+    didGenerate: ([Int]) async throws -> GenerateDisposition
 ) async throws -> GenerateResult { // CHANGE: function is now async
     let tokens = MLXArray(promptTokens)
     let iterator = try TokenIterator(
@@ -503,7 +503,7 @@ public func generate(
         tokenizer: tokenizer)
 
     // CHANGE: await the call
-    return await generate(
+    return try await generate(
         input: input, context: context, iterator: iterator, didGenerate: didGenerate)
 }
 
@@ -536,12 +536,12 @@ public func generate(
 public func generate(
     input: LMInput, parameters: GenerateParameters, context: ModelContext,
     // CHANGE: didGenerate is now async
-    didGenerate: ([Int]) async -> GenerateDisposition
+    didGenerate: ([Int]) async throws -> GenerateDisposition
 ) async throws -> GenerateResult { // CHANGE: function is now async
     let iterator = try TokenIterator(
         input: input, model: context.model, parameters: parameters)
     // CHANGE: await the call
-    return await generate(
+    return try await generate(
         input: input, context: context, iterator: iterator, didGenerate: didGenerate)
 }
 
@@ -559,8 +559,8 @@ public func generate(
     input: LMInput, context: ModelContext,
     iterator: TokenIterator,
     // CHANGE: didGenerate is now async
-    didGenerate: ([Int]) async -> GenerateDisposition
-) async -> GenerateResult { // CHANGE: function is now async (removed throws as original didn't have it here, but should match others if it can throw)
+    didGenerate: ([Int]) async throws -> GenerateDisposition
+) async throws -> GenerateResult { // CHANGE: function is now async (removed throws as original didn't have it here, but should match others if it can throw)
     var start = Date.timeIntervalSinceReferenceDate
     var promptTime: TimeInterval = 0
 
@@ -588,7 +588,7 @@ public func generate(
         tokens.append(token)
 
         // CHANGE: await the call to didGenerate
-        if await didGenerate(tokens) == .stop {
+        if try await didGenerate(tokens) == .stop {
             break
         }
     }
@@ -637,12 +637,12 @@ public func generate(
 public func generate(
     input: LMInput, parameters: GenerateParameters, context: ModelContext,
     // CHANGE: didGenerate is now async
-    didGenerate: (Int) async -> GenerateDisposition
+    didGenerate: (Int) async throws -> GenerateDisposition
 ) async throws -> GenerateCompletionInfo { // CHANGE: function is now async
     let iterator = try TokenIterator(
         input: input, model: context.model, parameters: parameters)
     // CHANGE: await the call
-    return await generate(
+    return try await generate(
         input: input, context: context, iterator: iterator, didGenerate: didGenerate)
 }
 
@@ -650,8 +650,8 @@ public func generate(
     input: LMInput, context: ModelContext,
     iterator: TokenIterator,
     // CHANGE: didGenerate is now async
-    didGenerate: (Int) async -> GenerateDisposition
-) async -> GenerateCompletionInfo { // CHANGE: function is now async
+    didGenerate: (Int) async throws -> GenerateDisposition
+) async throws -> GenerateCompletionInfo { // CHANGE: function is now async
     var start = Date.timeIntervalSinceReferenceDate
     var promptTime: TimeInterval = 0
 
@@ -682,7 +682,7 @@ public func generate(
 
         // Invoke the callback with the current token
         // CHANGE: await the call to didGenerate
-        if await didGenerate(token) == .stop {
+        if try await didGenerate(token) == .stop {
             break
         }
     }
