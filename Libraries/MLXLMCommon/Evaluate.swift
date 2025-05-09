@@ -691,8 +691,14 @@ public func generate(
     let generateTime = now - start
 
     // Synchronize with the stream to ensure tasks are completed
-    Stream().synchronize() // This might need to be Stream.shared.synchronize() or similar
-
+    if !Task.isCancelled {
+        Stream.shared.synchronize() // Utiliser Stream.shared est souvent plus correct
+        print("MLX Evaluation: Stream synchronized.")
+    } else {
+        print("MLX Evaluation: Skipping stream synchronization due to task cancellation.")
+        // Optionnel: Tenter un nettoyage plus direct si disponible, mais probablement pas nécessaire
+        // si le modèle et les caches sont vidés agressivement par ailleurs.
+    }
     return GenerateCompletionInfo(
         promptTokenCount: input.text.tokens.size,
         generationTokenCount: tokenCount,
@@ -805,8 +811,14 @@ public func generate(
             continuation.yield(.info(info))
 
             // Synchronize with the stream to ensure tasks are completed
-            Stream().synchronize()
-
+    if !Task.isCancelled {
+        Stream.shared.synchronize() // Utiliser Stream.shared est souvent plus correct
+        print("MLX Evaluation: Stream synchronized.")
+    } else {
+        print("MLX Evaluation: Skipping stream synchronization due to task cancellation.")
+        // Optionnel: Tenter un nettoyage plus direct si disponible, mais probablement pas nécessaire
+        // si le modèle et les caches sont vidés agressivement par ailleurs.
+    }
             // Finalize the stream
             continuation.finish()
         }
