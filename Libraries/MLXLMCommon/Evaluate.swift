@@ -598,7 +598,7 @@ public func generate(
 
     // CHANGE: Conditionner la synchronisation
     if !Task.isCancelled {
-        Stream.shared.synchronize() 
+        Stream().synchronize() 
         print("MLX Evaluation (GenerateResult): Stream synchronized.")
     } else {
         print("MLX Evaluation (GenerateResult): Skipping stream synchronization due to task cancellation.")
@@ -694,7 +694,7 @@ public func generate(
 
     // Synchronize with the stream to ensure tasks are completed
     if !Task.isCancelled {
-        Stream.shared.synchronize() // Utiliser Stream.shared est souvent plus correct
+        Stream().synchronize() // Utiliser Stream.shared est souvent plus correct
         print("MLX Evaluation: Stream synchronized.")
     } else {
         print("MLX Evaluation: Skipping stream synchronization due to task cancellation.")
@@ -814,7 +814,7 @@ public func generate(
 
             // Synchronize with the stream to ensure tasks are completed
     if !Task.isCancelled {
-        Stream.shared.synchronize() // Utiliser Stream.shared est souvent plus correct
+        Stream().synchronize() // Utiliser Stream.shared est souvent plus correct
         print("MLX Evaluation: Stream synchronized.")
     } else {
         print("MLX Evaluation: Skipping stream synchronization due to task cancellation.")
