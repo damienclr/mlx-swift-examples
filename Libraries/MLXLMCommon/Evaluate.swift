@@ -593,14 +593,16 @@ public func generate(
         }
     }
 
-    let now = Date.timeIntervalSinceReferenceDate
+       let now = Date.timeIntervalSinceReferenceDate
     let generateTime = now - start
 
-    // TokenIterator uses `asyncEval()` to keep the pipeline full.  If the caller
-    // exits the program right away, those tasks will still be executing and will
-    // hit assertions as the mlx scheduler is torn down.  Synchronize with the stream
-    // to make sure it is complete.
-    Stream().synchronize() // This might need to be Stream.shared.synchronize() or similar depending on MLX API
+    // CHANGE: Conditionner la synchronisation
+    if !Task.isCancelled {
+        Stream.shared.synchronize() 
+        print("MLX Evaluation (GenerateResult): Stream synchronized.")
+    } else {
+        print("MLX Evaluation (GenerateResult): Skipping stream synchronization due to task cancellation.")
+    }
 
     return GenerateResult(
         inputText: input.text, tokens: tokens,
