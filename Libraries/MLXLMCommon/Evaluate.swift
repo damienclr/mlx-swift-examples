@@ -487,9 +487,8 @@ public func generate(
     promptTokens: [Int], parameters: GenerateParameters, model: any LanguageModel,
     tokenizer: Tokenizer,
     extraEOSTokens: Set<String>? = nil,
-    // CHANGE: didGenerate is now async
-    didGenerate: ([Int]) async throws -> GenerateDisposition
-) async throws -> GenerateResult { // CHANGE: function is now async
+    didGenerate: ([Int]) -> GenerateDisposition
+) throws -> GenerateResult {
     let tokens = MLXArray(promptTokens)
     let iterator = try TokenIterator(
         prompt: tokens, model: model, parameters: parameters)
@@ -502,8 +501,7 @@ public func generate(
         configuration: configuration, model: model, processor: StandInUserInputProcessor(),
         tokenizer: tokenizer)
 
-    // CHANGE: await the call
-    return try await generate(
+    return generate(
         input: input, context: context, iterator: iterator, didGenerate: didGenerate)
 }
 
@@ -535,13 +533,11 @@ public func generate(
 /// - Returns: the generated output
 public func generate(
     input: LMInput, parameters: GenerateParameters, context: ModelContext,
-    // CHANGE: didGenerate is now async
-    didGenerate: ([Int]) async throws -> GenerateDisposition
-) async throws -> GenerateResult { // CHANGE: function is now async
+    didGenerate: ([Int]) -> GenerateDisposition
+) throws -> GenerateResult {
     let iterator = try TokenIterator(
         input: input, model: context.model, parameters: parameters)
-    // CHANGE: await the call
-    return try await generate(
+    return generate(
         input: input, context: context, iterator: iterator, didGenerate: didGenerate)
 }
 
@@ -558,9 +554,8 @@ public func generate(
 public func generate(
     input: LMInput, context: ModelContext,
     iterator: TokenIterator,
-    // CHANGE: didGenerate is now async
-    didGenerate: ([Int]) async throws -> GenerateDisposition
-) async throws -> GenerateResult { // CHANGE: function is now async (removed throws as original didn't have it here, but should match others if it can throw)
+    didGenerate: ([Int]) -> GenerateDisposition
+) -> GenerateResult {
     var start = Date.timeIntervalSinceReferenceDate
     var promptTime: TimeInterval = 0
 
@@ -587,22 +582,19 @@ public func generate(
         }
         tokens.append(token)
 
-        // CHANGE: await the call to didGenerate
-        if try await didGenerate(tokens) == .stop {
+        if didGenerate(tokens) == .stop {
             break
         }
     }
 
-       let now = Date.timeIntervalSinceReferenceDate
+    let now = Date.timeIntervalSinceReferenceDate
     let generateTime = now - start
 
-    // CHANGE: Conditionner la synchronisation
-    if !Task.isCancelled {
-        Stream().synchronize() 
-        print("MLX Evaluation (GenerateResult): Stream synchronized.")
-    } else {
-        print("MLX Evaluation (GenerateResult): Skipping stream synchronization due to task cancellation.")
-    }
+    // TokenIterator uses `asyncEval()` to keep the pipeline full.  If the caller
+    // exits the program right away, those tasks will still be executing and will
+    // hit assertions as the mlx scheduler is torn down.  Synchronize with the stream
+    // to make sure it is complete.
+    Stream().synchronize()
 
     return GenerateResult(
         inputText: input.text, tokens: tokens,
@@ -638,22 +630,19 @@ public func generate(
 /// - Returns: Information about the generation
 public func generate(
     input: LMInput, parameters: GenerateParameters, context: ModelContext,
-    // CHANGE: didGenerate is now async
-    didGenerate: (Int) async throws -> GenerateDisposition
-) async throws -> GenerateCompletionInfo { // CHANGE: function is now async
+    didGenerate: (Int) -> GenerateDisposition
+) throws -> GenerateCompletionInfo {
     let iterator = try TokenIterator(
         input: input, model: context.model, parameters: parameters)
-    // CHANGE: await the call
-    return try await generate(
+    return generate(
         input: input, context: context, iterator: iterator, didGenerate: didGenerate)
 }
 
 public func generate(
     input: LMInput, context: ModelContext,
     iterator: TokenIterator,
-    // CHANGE: didGenerate is now async
-    didGenerate: (Int) async throws -> GenerateDisposition
-) async throws -> GenerateCompletionInfo { // CHANGE: function is now async
+    didGenerate: (Int) -> GenerateDisposition
+) -> GenerateCompletionInfo {
     var start = Date.timeIntervalSinceReferenceDate
     var promptTime: TimeInterval = 0
 
@@ -683,8 +672,7 @@ public func generate(
         tokenCount += 1
 
         // Invoke the callback with the current token
-        // CHANGE: await the call to didGenerate
-        if try await didGenerate(token) == .stop {
+        if didGenerate(token) == .stop {
             break
         }
     }
@@ -693,14 +681,8 @@ public func generate(
     let generateTime = now - start
 
     // Synchronize with the stream to ensure tasks are completed
-    if !Task.isCancelled {
-        Stream().synchronize() // Utiliser Stream.shared est souvent plus correct
-        print("MLX Evaluation: Stream synchronized.")
-    } else {
-        print("MLX Evaluation: Skipping stream synchronization due to task cancellation.")
-        // Optionnel: Tenter un nettoyage plus direct si disponible, mais probablement pas nécessaire
-        // si le modèle et les caches sont vidés agressivement par ailleurs.
-    }
+    Stream().synchronize()
+
     return GenerateCompletionInfo(
         promptTokenCount: input.text.tokens.size,
         generationTokenCount: tokenCount,
@@ -813,14 +795,8 @@ public func generate(
             continuation.yield(.info(info))
 
             // Synchronize with the stream to ensure tasks are completed
-    if !Task.isCancelled {
-        Stream().synchronize() // Utiliser Stream.shared est souvent plus correct
-        print("MLX Evaluation: Stream synchronized.")
-    } else {
-        print("MLX Evaluation: Skipping stream synchronization due to task cancellation.")
-        // Optionnel: Tenter un nettoyage plus direct si disponible, mais probablement pas nécessaire
-        // si le modèle et les caches sont vidés agressivement par ailleurs.
-    }
+            Stream().synchronize()
+
             // Finalize the stream
             continuation.finish()
         }
