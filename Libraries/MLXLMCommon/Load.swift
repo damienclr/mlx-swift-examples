@@ -24,13 +24,12 @@ public func downloadModel(
 ) async throws -> URL {
     do {
         switch configuration.id {
-        case .id(let id, let revision):
+        case .id(let id):
             // download the model weights
             let repo = Hub.Repo(id: id)
             let modelFiles = ["*.safetensors", "*.json"]
             return try await hub.snapshot(
                 from: repo,
-                revision: revision,
                 matching: modelFiles,
                 progressHandler: progressHandler
             )
