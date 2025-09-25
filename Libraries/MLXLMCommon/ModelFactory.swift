@@ -221,7 +221,7 @@ public func loadModel(
 ) async throws -> sending ModelContext {
     try await load {
         try await $0.load(
-            hub: hub, configuration: .init(id: id, revision: revision),
+            hub: hub, configuration: .init(id: id),
             progressHandler: progressHandler)
     }
 }
@@ -242,7 +242,7 @@ public func loadModelContainer(
 ) async throws -> sending ModelContainer {
     try await load {
         try await $0.loadContainer(
-            hub: hub, configuration: .init(id: id, revision: revision),
+            hub: hub, configuration: .init(id: id),
             progressHandler: progressHandler)
     }
 }
