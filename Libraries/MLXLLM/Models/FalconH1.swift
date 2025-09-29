@@ -783,6 +783,26 @@ extension FalconH1Model: LoRAModel {
 
 // MARK: - Configuration
 
+// Structure pour la configuration de quantization
+public struct QuantizationConfig: Codable, Sendable {
+  var groupSize: Int
+  var bits: Int
+  var mode: String
+  
+  enum CodingKeys: String, CodingKey {
+      case groupSize = "group_size"
+      case bits
+      case mode
+  }
+  
+  public init(from decoder: Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.groupSize = try container.decodeIfPresent(Int.self, forKey: .groupSize) ?? 64
+      self.bits = try container.decodeIfPresent(Int.self, forKey: .bits) ?? 4
+      self.mode = try container.decodeIfPresent(String.self, forKey: .mode) ?? "affine"
+  }
+}
+
 public struct FalconH1Configuration: Codable, Sendable {
   var attentionBias: Bool
   var attentionDropout: Float
@@ -822,6 +842,8 @@ public struct FalconH1Configuration: Codable, Sendable {
   var numLogitsToKeep: Int
   var padTokenId: Int
   var projectorsBias: Bool
+  var quantization: QuantizationConfig?
+  var quantizationConfig: QuantizationConfig?
   var rmsNormEps: Float?
   var ropeTraditional: Bool
   var ropeScaling: Float?
@@ -831,6 +853,8 @@ public struct FalconH1Configuration: Codable, Sendable {
   var ssmOutMultiplier: Float
   var tieWordEmbeddings: Bool
   var torchDtype: String
+  var transformersVersion: String?
+  var useCache: Bool?
   var vocabSize: Int
 
   enum CodingKeys: String, CodingKey {
@@ -872,6 +896,8 @@ public struct FalconH1Configuration: Codable, Sendable {
       case numLogitsToKeep = "num_logits_to_keep"
       case padTokenId = "pad_token_id"
       case projectorsBias = "projectors_bias"
+      case quantization
+      case quantizationConfig = "quantization_config"
       case rmsNormEps = "rms_norm_eps"
       case ropeTraditional = "rope_traditional"
       case ropeScaling = "rope_scaling"
@@ -881,6 +907,8 @@ public struct FalconH1Configuration: Codable, Sendable {
       case ssmOutMultiplier = "ssm_out_multiplier"
       case tieWordEmbeddings = "tie_word_embeddings"
       case torchDtype = "torch_dtype"
+      case transformersVersion = "transformers_version"
+      case useCache = "use_cache"
       case vocabSize = "vocab_size"
   }
 
@@ -946,6 +974,8 @@ public struct FalconH1Configuration: Codable, Sendable {
       self.padTokenId = try container.decodeIfPresent(Int.self, forKey: .padTokenId) ?? 0
       self.projectorsBias =
           try container.decodeIfPresent(Bool.self, forKey: .projectorsBias) ?? false
+      self.quantization = try container.decodeIfPresent(QuantizationConfig.self, forKey: .quantization)
+      self.quantizationConfig = try container.decodeIfPresent(QuantizationConfig.self, forKey: .quantizationConfig)
       self.rmsNormEps = try container.decodeIfPresent(Float.self, forKey: .rmsNormEps)
       self.ropeTraditional =
           try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
@@ -963,9 +993,12 @@ public struct FalconH1Configuration: Codable, Sendable {
           try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
       self.torchDtype =
           try container.decodeIfPresent(String.self, forKey: .torchDtype) ?? "bfloat16"
+      self.transformersVersion = try container.decodeIfPresent(String.self, forKey: .transformersVersion)
+      self.useCache = try container.decodeIfPresent(Bool.self, forKey: .useCache)
       self.vocabSize = try container.decodeIfPresent(Int.self, forKey: .vocabSize) ?? 128000
   }
 }
+
 
 // MARK: - Mamba2Cache KVCache
 
