@@ -27,11 +27,19 @@ public struct LFM2Configuration: Codable, Sendable {
     var blockFFDim: Int { _blockFFDim ?? hiddenSize }
     let blockMultipleOf: Int
     let blockFFNDimMultiplier: Float
-    let blockAutoAdjustFFDim: Bool
-    private let _fullAttnIdxs: [Int]?
-    var fullAttnIdxs: [Int] { _fullAttnIdxs ?? Array(0 ..< hiddenLayers) }
-    let ropeTheta: Float
-    var headDimensions: Int { hiddenSize / attentionHeads }
+ let blockAutoAdjustFFDim: Bool
+  private let _fullAttnIdxs: [Int]?
+  private let _layerTypes: [String]?
+  var fullAttnIdxs: [Int] {
+      if let layerTypes = _layerTypes {
+          return layerTypes.enumerated().compactMap { i, type in
+              type == "full_attention" ? i : nil
+          }
+      }
+      return _fullAttnIdxs ?? Array(0 ..< hiddenLayers)
+  }
+  let ropeTheta: Float
+  var headDimensions: Int { hiddenSize / attentionHeads }
 
     enum CodingKeys: String, CodingKey {
         case modelType = "model_type"
@@ -47,11 +55,12 @@ public struct LFM2Configuration: Codable, Sendable {
         case _blockDim = "block_dim"
         case _blockFFDim = "block_ff_dim"
         case blockMultipleOf = "block_multiple_of"
-        case blockFFNDimMultiplier = "block_ffn_dim_multiplier"
-        case blockAutoAdjustFFDim = "block_auto_adjust_ff_dim"
-        case _fullAttnIdxs = "full_attn_idxs"
-        case ropeTheta = "rope_theta"
-    }
+      case blockFFNDimMultiplier = "block_ffn_dim_multiplier"
+      case blockAutoAdjustFFDim = "block_auto_adjust_ff_dim"
+      case _fullAttnIdxs = "full_attn_idxs"
+      case _layerTypes = "layer_types"
+      case ropeTheta = "rope_theta"
+  }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -74,11 +83,12 @@ public struct LFM2Configuration: Codable, Sendable {
             try container.decodeIfPresent(Int.self, forKey: .blockMultipleOf) ?? 256
         self.blockFFNDimMultiplier =
             try container.decodeIfPresent(Float.self, forKey: .blockFFNDimMultiplier) ?? 1.0
-        self.blockAutoAdjustFFDim =
-            try container.decodeIfPresent(Bool.self, forKey: .blockAutoAdjustFFDim) ?? true
-        self._fullAttnIdxs = try container.decodeIfPresent([Int].self, forKey: ._fullAttnIdxs)
-        self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 1000000.0
-    }
+      self.blockAutoAdjustFFDim =
+          try container.decodeIfPresent(Bool.self, forKey: .blockAutoAdjustFFDim) ?? true
+      self._fullAttnIdxs = try container.decodeIfPresent([Int].self, forKey: ._fullAttnIdxs)
+      self._layerTypes = try container.decodeIfPresent([String].self, forKey: ._layerTypes)
+      self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 1000000.0
+  }
 }
 
 private class Attention: Module {
