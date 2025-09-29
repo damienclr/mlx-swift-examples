@@ -50,6 +50,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "mimo": create(MiMoConfiguration.self, MiMoModel.init),
             "glm4": create(GLM4Configuration.self, GLM4Model.init),
             "acereason": create(Qwen2Configuration.self, Qwen2Model.init),
+            "falcon_h1": create(FalconH1Configuration.self, FalconH1Model.init),
             "bitnet": create(BitnetConfiguration.self, BitnetModel.init),
             "smollm3": create(SmolLM3Configuration.self, SmolLM3Model.init),
             "ernie4_5": create(Ernie45Configuration.self, Ernie45Model.init),
@@ -270,6 +271,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: ""
     )
 
+    static public let falcon_h1_3b_4bit = ModelConfiguration(
+        id: "mlx-community/Falcon-H1-3B-Instruct-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+    
     static public let bitnet_b1_58_2b_4t_4bit = ModelConfiguration(
         id: "mlx-community/bitnet-b1.58-2B-4T-4bit",
         defaultPrompt: "Why is the sky blue?"
