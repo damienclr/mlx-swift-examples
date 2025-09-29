@@ -949,7 +949,7 @@ public struct FalconH1Configuration: Codable, Sendable {
       self.rmsNormEps = try container.decodeIfPresent(Float.self, forKey: .rmsNormEps)
       self.ropeTraditional =
           try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
-      self.ropeScaling = try container.decodeIfPresent(Float?.self, forKey: .ropeScaling)
+      self.ropeScaling = try container.decodeIfPresent(Float.self, forKey: .ropeScaling)
       self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 100000.0
       self.ssmInMultiplier =
           try container.decodeIfPresent(Float.self, forKey: .ssmInMultiplier) ?? 1.0
@@ -1126,7 +1126,7 @@ private class Mamba2Cache: BaseKVCache {
       return true
   }
 
-  @discardableResult
+ @discardableResult
   override func trim(_ n: Int) -> Int {
       let trimmed = min(offset, n)
       offset -= trimmed
@@ -1139,15 +1139,16 @@ private class Mamba2Cache: BaseKVCache {
           if k.dim(-2) > trimmed {
               keyCache[i] = k[.ellipsis, trimmed..., 0...]
           } else {
-              keyCache[i] = MLXArray.zeros(like: k[Sequence(start: 0, stop: 0)])
+              keyCache[i] = MLXArray.zeros(like: k[.ellipsis, 0..<0, 0...])
           }
           if v.dim(-2) > trimmed {
               valueCache[i] = v[.ellipsis, trimmed..., 0...]
           } else {
-              valueCache[i] = MLXArray.zeros(like: v[Sequence(start: 0, stop: 0)])
+              valueCache[i] = MLXArray.zeros(like: v[.ellipsis, 0..<0, 0...])
           }
       }
 
       return trimmed
   }
 }
+
