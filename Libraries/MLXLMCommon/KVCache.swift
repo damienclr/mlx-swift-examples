@@ -103,6 +103,8 @@ open class BaseKVCache: KVCache {
   open var offset: Int = 0
   open var maxSize: Int? { nil }
 
+  public init() { }
+
   open func innerState() -> [MLXArray] { [] }
 
     open func update(keys: MLXArray, values: MLXArray) -> (MLXArray, MLXArray) {
