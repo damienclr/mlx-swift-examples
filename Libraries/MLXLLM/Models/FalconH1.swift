@@ -969,12 +969,14 @@ public struct FalconH1Configuration: Codable, Sendable {
 
 // MARK: - Mamba2Cache KVCache
 
-private class Mamba2Cache: KVCache {
-    var offset: Int
+// MARK: - Mamba2Cache KVCache
 
-    var maxSize: Int?
+private class Mamba2Cache: BaseKVCache {
+  override var offset: Int
 
-    func innerState() -> [MLXArray] {
+  override var maxSize: Int? { nil }
+
+  func innerState() -> [MLXArray] {
         []
     }
 
@@ -1022,16 +1024,16 @@ private class Mamba2Cache: KVCache {
         self.seqlenOffset = 0
         self.hasPreviousState = false
         self.transformerLayers = Array(0 ..< args.numHiddenLayers)
-        self.keyCache = []
-        self.valueCache = []
-        self.offset = 0
-    }
+         self.keyCache = []
+      self.valueCache = []
+      self.offset = 0
+  }
 
-    func update(keys: MLXArray, values: MLXArray) -> (MLXArray, MLXArray) {
-        update(keyStates: keys, valueStates: values, layerIdx: 0)
-    }
+  override func update(keys: MLXArray, values: MLXArray) -> (MLXArray, MLXArray) {
+      update(keyStates: keys, valueStates: values, layerIdx: 0)
+  }
 
-    func update(keyStates: MLXArray, valueStates: MLXArray, layerIdx: Int) -> (MLXArray, MLXArray) {
+  func update(keyStates: MLXArray, valueStates: MLXArray, layerIdx: Int) -> (MLXArray, MLXArray) {
         if layerIdx == 0 {
             _seenTokens += keyStates.dim(-2)
         }
@@ -1067,14 +1069,84 @@ private class Mamba2Cache: KVCache {
             convState[0..., 0..., -1] = newConvState[0..., 0..., -1]
         }
 
-        convStates[layerIdx] = convState
-        return convStates[layerIdx]!
-    }
+      convStates[layerIdx] = convState
+      return convStates[layerIdx]!
+  }
 
-    func reset() {
+  func reset() {
         for i in 0 ..< convStates.count {
-            convStates[i] = MLXArray.zeros(like: convStates[i]!)
-            ssmStates[i] = MLXArray.zeros(like: ssmStates[i]!)
-        }
-    }
+       convStates[i] = MLXArray.zeros(like: convStates[i]!)
+          ssmStates[i] = MLXArray.zeros(like: ssmStates[i]!)
+      }
+  }
+
+  override var state: [MLXArray] {
+      get {
+          var arrays = [MLXArray]()
+          let sortedConvStates = convStates.sorted { $0.key < $1.key }.map { $0.value }
+          let sortedSsmStates = ssmStates.sorted { $0.key < $1.key }.map { $0.value }
+          arrays.append(contentsOf: sortedConvStates)
+          arrays.append(contentsOf: sortedSsmStates)
+          arrays.append(contentsOf: keyCache)
+          arrays.append(contentsOf: valueCache)
+          return arrays
+      }
+      set {
+          let nLayers = transformerLayers.count
+          guard newValue.count == nLayers * 2 + keyCache.count + valueCache.count else { return }
+          for i in 0..<nLayers {
+              convStates[i] = newValue[i]
+              ssmStates[i] = newValue[i + nLayers]
+          }
+          let cacheOffset = nLayers * 2
+          for i in 0..<keyCache.count {
+              keyCache[i] = newValue[cacheOffset + i]
+          }
+          let valueCacheOffset = cacheOffset + keyCache.count
+          for i in 0..<valueCache.count {
+              valueCache[i] = newValue[valueCacheOffset + i]
+          }
+      }
+  }
+
+  override var metaState: [String] {
+      get {
+          [String(offset), String(seqlenOffset), String(hasPreviousState), String(_seenTokens)]
+      }
+      set {
+          if newValue.count >= 4 {
+              offset = Int(newValue[0]) ?? 0
+              seqlenOffset = Int(newValue[1]) ?? 0
+              hasPreviousState = Bool(newValue[2]) ?? false
+              _seenTokens = Int(newValue[3]) ?? 0
+          }
+      }
+  }
+
+  override var isTrimmable: Bool {
+      return true
+  }
+
+  @discardableResult
+  override func trim(_ n: Int) -> Int {
+      let trimmed = min(offset, n)
+      offset -= trimmed
+      seqlenOffset -= trimmed
+      _seenTokens -= trimmed
+
+      for i in 0 ..< keyCache.count {
+          if keyCache[i].dim(-2) > trimmed {
+              keyCache[i] = keyCache[i][.ellipsis, trimmed..., 0...]
+          } else {
+              keyCache[i] = MLXArray.zeros(like: keyCache[i][.ellipsis, ..<0, 0...])
+          }
+          if valueCache[i].dim(-2) > trimmed {
+              valueCache[i] = valueCache[i][.ellipsis, trimmed..., 0...]
+          } else {
+              valueCache[i] = MLXArray.zeros(like: valueCache[i][.ellipsis, ..<0, 0...])
+          }
+      }
+
+      return trimmed
+  }
 }
