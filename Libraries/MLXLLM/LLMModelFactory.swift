@@ -84,6 +84,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Tell me about the history of Spain."
     )
 
+       static public let falcon_h1_3B_4bit = ModelConfiguration(
+        id: "mlx-community/Falcon-H1-3B-Instruct-4bit",
+        defaultPrompt: "Tell me about the history of Spain."
+    )
+    
     static public let mistralNeMo4bit = ModelConfiguration(
         id: "mlx-community/Mistral-Nemo-Instruct-2407-4bit",
         defaultPrompt: "Explain quaternions."
